@@ -63,8 +63,7 @@
 - name: Set master nodes to director boot order
   shell: |
     {{ badfish_cmd }}{{ item }} -t director
-  with_items:
-    {{ master_fqdns }}
+  with_items: "{{ master_fqdns }}"
 
 #TODO: Add wait for node reboot
 

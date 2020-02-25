@@ -69,6 +69,7 @@
 
 - name: Disable SELinux
   selinux:
+    policy: targeted
     state: permissive
 
 - name: Configure dnsmasq for baremetal

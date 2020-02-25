@@ -1,0 +1,103 @@
+---
+- name: Install packages
+  yum:
+    name: "{{ yum_packages }}"
+    state: latest
+
+- name: Get Badfish pod image
+  podman_image:
+    name: "{{ badfish_pod_image }}"
+    pull: yes
+
+- name: Get dnsmasq.conf template
+  get_url:
+    url: https://gist.githubusercontent.com/dustinblack/1bbc406fd38046a251bf0318acba523c/raw/ocp4-ipi-dnsmasq.conf
+    dest: /root
+    force: yes
+    mode: '0440'
+
+- name: Delete {{ bm_if }} due to modify nmcli bug
+  nmcli:
+    conn_name: "{{ bm_if }}"
+    type: ethernet
+    state: absent
+
+- name: Create Bridge labeled baremetal
+  nmcli:
+    conn_name: baremetal
+    type: bridge
+    ifname: baremetal
+    autoconnect: yes
+    stp: off
+    ip4: 192.168.222.1/24
+    dns4:
+      - 192.168.222.1
+    state: present
+
+- name: Set Bridge DNS priority
+  shell: |
+    nmcli con mod baremetal ipv4.dns-priority 10
+
+- name: Create Bridge slave on {{ bm_if }}
+  nmcli:
+    conn_name: "{{ bm_if }}"
+    type: bridge-slave
+    hairpin: no
+    ip4_method: manual
+    ifname: "{{ bm_if }}"
+    master: baremetal
+    autoconnect: yes
+    state: present
+
+- name: Reload baremetal bridge and slave interfaces
+  shell: |
+    /usr/bin/nmcli con reload {{ item }}; /usr/bin/nmcli con up {{ item }}
+  with_items:
+    - baremetal
+    - "{{ bm_if }}"
+
+#TODO: Add some logic to first check the node boot order
+#TODO: This only works with Dell nodes
+#TODO: Possibly redo this with the redfish ansible module
+
+- name: Set master nodes to director boot order
+  shell: |
+    {{ badfish_cmd }}{{ item }} -t director
+  with_items:
+    {{ master_fqdns }}
+
+#TODO: Add wait for node reboot
+
+- name: Disable SELinux
+  selinux:
+    state: disabled
+
+- name: Configure dnsmasq for baremetal
+  template:
+    src: ocp4-lab.dnsmasq.conf.j2
+    dest: /etc/dnsmasq.d/ocp4-lab.conf
+    mode: 0640
+
+#FIXME
+- name: Configure firewall
+  iptables:
+    flush: yes
+
+- name: Configure NAT
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    source: 192.168.222.0/24
+    destination: ! 192.168.222.0/24
+    out_interface: "{{ pub_if }}"
+    jump: MASQUERADE
+
+- name: Save iptables configuration
+  shell: |
+    /usr/sbin/iptables-save > /etc/sysconfig/iptables
+
+- name: Enable and restart dnsmasq service
+  systemd:
+    name: dnsmasq
+    state: restarted
+    enabled: yes

@@ -1,0 +1,5 @@
+---
+- name: Shared Labs OCP4 Prep Playbook
+  hosts: provisioner
+  roles:
+    - shared-labs-ocp4-prep

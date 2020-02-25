@@ -1,0 +1,22 @@
+listen-address=192.168.222.1
+bind-interfaces
+strict-order
+local=/test.myocp4.com/
+domain=test.myocp4.com
+expand-hosts
+except-interface=lo
+except-interface={{ pub_if }}
+interface=baremetal
+dhcp-range=192.168.222.20,192.168.222.90
+dhcp-no-override
+dhcp-authoritative
+dhcp-lease-max=41
+dhcp-host={{ master_bm_mac[0] }},192.168.222.20,master-0
+dhcp-host={{ master_bm_mac[1] }},192.168.222.21,master-1
+dhcp-host={{ master_bm_mac[2] }},192.168.222.22,master-2
+#dhcp-host=<your_worker1_mac>,192.168.222.30,worker00
+#dhcp-host=<your_worker2_mac>,192.168.222.31,worker01
+#dhcp-host=<your_worker3_mac>,192.168.222.32,worker02
+address=/api.test.myocp4.com/192.168.222.10
+address=/.apps.test.myocp4.com/192.168.222.11
+address=/ns1.test.myocp4.com/192.168.222.12

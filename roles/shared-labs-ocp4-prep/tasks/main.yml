@@ -67,7 +67,7 @@
 
 #TODO: Add wait for node reboot
 
-- name: Disable SELinux
+- name: Set SELinux permissive
   selinux:
     policy: targeted
     state: permissive

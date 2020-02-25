@@ -69,7 +69,7 @@
 
 - name: Disable SELinux
   selinux:
-    state: disabled
+    state: permissive
 
 - name: Configure dnsmasq for baremetal
   template:
